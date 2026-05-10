@@ -15,6 +15,7 @@
 
 package org.ezbook.server.tools
 
+import org.ezbook.server.db.model.BillInfoModel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -54,6 +55,21 @@ class BillMergerRemarkNormalizationTest {
             shopName to shopItem,
             BillMerger.deduplicateRemarkFields(shopName, shopItem)
         )
+    }
+
+    @Test
+    fun mergeChannelInfo_joinsDistinctSources() {
+        val parent = BillInfoModel(channel = "微信[招商银行]")
+        val child = BillInfoModel(channel = "建设银行动账")
+        BillMerger.mergeChannelInfo(child, parent)
+        assertEquals("微信[招商银行] 建设银行动账", parent.channel)
+    }
+
+    @Test
+    fun mergeChannelInfo_keepsSingleSideWhenOtherEmpty() {
+        val parent = BillInfoModel(channel = "支付宝")
+        BillMerger.mergeChannelInfo(BillInfoModel(channel = ""), parent)
+        assertEquals("支付宝", parent.channel)
     }
 }
 
