@@ -44,6 +44,7 @@ object BillMerger {
     suspend fun mergeBillData(sourceBill: BillInfoModel, targetBill: BillInfoModel) {
         mergeAccountInfo(sourceBill, targetBill)
         mergeShopInfo(sourceBill, targetBill)
+        mergeChannelInfo(sourceBill, targetBill)
     }
 
     /**
@@ -145,6 +146,7 @@ object BillMerger {
      */
     fun mergeChannelInfo(source: BillInfoModel, target: BillInfoModel) {
         target.channel = mergeStringField(target.channel, source.channel)
+        target.ruleName = mergeStringField(target.ruleName, source.ruleName)
     }
 
     /**

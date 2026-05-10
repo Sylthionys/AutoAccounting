@@ -537,6 +537,7 @@ class BillService(
             val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(bill.time))
             addProperty("time", timeStr)
             addProperty("ruleName", bill.ruleName)
+            addProperty("channel", bill.channel)
         }
 
         val js = ruleGenerator.category()
