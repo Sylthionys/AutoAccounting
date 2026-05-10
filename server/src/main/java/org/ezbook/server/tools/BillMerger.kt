@@ -138,6 +138,16 @@ object BillMerger {
     }
 
     /**
+     * 合并渠道字段（多渠道去重时用）。
+     *
+     * 同一笔交易的多条通知渠道不同（如微信 + 银行卡动账），拼接后分类规则可通过 [window.channel] 看到完整来源，
+     * 便于按渠道关键词匹配；语义与 [mergeStringField] 一致。
+     */
+    fun mergeChannelInfo(source: BillInfoModel, target: BillInfoModel) {
+        target.channel = mergeStringField(target.channel, source.channel)
+    }
+
+    /**
      * 合并商户和商品信息
      */
     fun mergeShopInfo(source: BillInfoModel, target: BillInfoModel) {
@@ -167,11 +177,7 @@ object BillMerger {
     }
 
     /**
-     * 设置账单分组关系并清空分类
-     */
-
-    /**
-     * 保存账单分组到数据库
+     * 保存账单分组到数据库（父子账单均已写入合并后的字段）。
      */
     suspend fun saveBillGroup(currentBill: BillInfoModel, parentBill: BillInfoModel) {
         ServerLog.d("保存账单分组：parent=${parentBill.id}, child=${currentBill.id}, groupId=${currentBill.groupId}")
