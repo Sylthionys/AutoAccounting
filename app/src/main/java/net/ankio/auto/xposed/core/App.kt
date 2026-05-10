@@ -89,6 +89,7 @@ class App : IXposedHookLoadPackage, IXposedHookZygoteInit {
         manifest: HookerManifest,
         callback: (Application?) -> Unit
     ) {
+        // 注册 Instrumentation Hook 时的失败（含 LinkageError）一并记录，避免仅 catch Exception 漏掉 Error
         try {
 
 
@@ -107,8 +108,7 @@ class App : IXposedHookLoadPackage, IXposedHookZygoteInit {
             }
 
 
-
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.i("Hook Application failed: ${manifest.applicationName}, error: ${e.message}")
             XposedLogger.e(e)
         }
@@ -167,7 +167,10 @@ class App : IXposedHookLoadPackage, IXposedHookZygoteInit {
 
 
     /**
-     * 初始化Hook器
+     * 初始化 Hook 清单与子 Hooker。
+     *
+     * 使用 [Throwable] 捕获失败：`findMethodExact` 等对宿主 ABI 不匹配时会抛出 [NoSuchMethodError]（属 [Error]），
+     * 仅捕获 [Exception] 无法拦截，会导致 LSPosed 打印未处理异常。
      */
     private fun startHooker(manifest: HookerManifest) {
 
@@ -175,7 +178,7 @@ class App : IXposedHookLoadPackage, IXposedHookZygoteInit {
         // 启动Hook
         try {
             manifest.hookLoadPackage()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e(e)
         }
 
@@ -186,7 +189,7 @@ class App : IXposedHookLoadPackage, IXposedHookZygoteInit {
             try {
                 hooker.hook()
                 XposedLogger.d("Part hooker init success: $hookerName")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 XposedLogger.d("Part hooker error: ${e.message}")
                 XposedLogger.e(e)
                 set("adaptation_version", "0")

@@ -10,6 +10,9 @@ import java.lang.reflect.Method
 
 /**
  * Xposed hooker utility for streamlined hooking operations.
+ *
+ * 注册 Hook 时对失败统一捕获 [Throwable]：`findMethodExact` / 类加载等可能抛出 [LinkageError]
+ *（例如宿主版本变化导致的 [NoSuchMethodError]），它们不是 [Exception] 子类；仅 catch Exception 会让异常泄漏到框架日志。
  */
 object Hooker {
 
@@ -63,7 +66,7 @@ object Hooker {
             XposedLogger.e("Class not found: $clazz", e)
         } catch (e: IllegalArgumentException) {
             XposedLogger.e("Invalid parameter type: ${e.message}", e)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error hooking method after: $clazz.$method - ${e.message}", e)
         }
     }
@@ -91,7 +94,7 @@ object Hooker {
                         hook(param)
                     }
                 })
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error hooking method before: $clazz.$method - ${e.message}", e)
         }
     }
@@ -115,7 +118,7 @@ object Hooker {
             before(loadedClass, method, *types, hook = hook)
         } catch (e: ClassNotFoundException) {
             XposedLogger.e("Class not found: $clazz", e)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error hooking method before: $clazz.$method - ${e.message}", e)
         }
     }
@@ -143,7 +146,7 @@ object Hooker {
                         hook(param)
                     }
                 })
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error hooking method before: $clazz.$method - ${e.message}", e)
         }
     }
@@ -178,7 +181,7 @@ object Hooker {
                     }
                 })
             hookMap[hookKey] = unhook
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error hooking once method after: $clazz.$method - ${e.message}", e)
         }
     }
@@ -213,7 +216,7 @@ object Hooker {
                     }
                 })
             hookMap[hookKey] = unhook
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error hooking once method before: $clazz.$method - ${e.message}", e)
         }
     }
@@ -234,7 +237,7 @@ object Hooker {
                         hook(param, method)
                     }
                 })
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 XposedLogger.e("Error hooking method before: ${method.name} - ${e.message}", e)
             }
         }
@@ -256,7 +259,7 @@ object Hooker {
                         hook(param, method)
                     }
                 })
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 XposedLogger.e("Error hooking method after: ${method.name} - ${e.message}", e)
             }
         }
@@ -343,7 +346,7 @@ object Hooker {
             XposedLogger.e("Class not found: $clazz", e)
         } catch (e: IllegalArgumentException) {
             XposedLogger.e("Invalid parameter type: ${e.message}", e)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error replacing method: $clazz.$method - ${e.message}", e)
         }
     }
@@ -394,7 +397,7 @@ object Hooker {
             XposedLogger.e("Class not found: $clazz", e)
         } catch (e: IllegalArgumentException) {
             XposedLogger.e("Invalid parameter type: ${e.message}", e)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Error replacing return value: $clazz.$method - ${e.message}", e)
         }
     }
@@ -475,7 +478,7 @@ object Hooker {
                     })
                     hookMap[hookKey] = unhook
                 }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             when (e) {
                 is ClassNotFoundException -> XposedLogger.e("Class not found: $clazz", e)
                 else -> XposedLogger.e("Error hooking method: $clazz.$methodName", e)
@@ -516,7 +519,7 @@ object Hooker {
                     })
                     hookMap[hookKey] = unhook
                 }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             when (e) {
                 is ClassNotFoundException -> XposedLogger.e("Class not found: $clazz", e)
                 else -> XposedLogger.e("Error hooking method: $clazz.$methodName", e)
@@ -616,14 +619,14 @@ object Hooker {
                             }
                         })
                         hookedCount++
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         XposedLogger.e("无法hook方法: ${method.name}", e)
                     }
                 }
 
             XposedLogger.d("✅ 成功监视 $hookedCount 个方法")
 
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedLogger.e("Watch失败: ${e.message}", e)
         }
     }
@@ -653,7 +656,7 @@ object Hooker {
                     "$className@${Integer.toHexString(value.hashCode())} -> ${value.toString()}"
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // 任何格式化错误都不应该导致hook崩溃
             "Error:${e.javaClass.simpleName}"
         }
