@@ -190,7 +190,8 @@ data class BillInfoModel(
 
 
     fun hasValidCategory(): Boolean {
-        return cateName.isNotEmpty() && cateName !== "其他" && cateName !== "其它"
+        // 必须用内容相等比较；引用相等 !== 会导致动态字符串与字面量比较失败，误判「其他」为有效分类
+        return cateName.isNotEmpty() && cateName != "其他" && cateName != "其它"
     }
 
     fun generateByAi(): Boolean {
