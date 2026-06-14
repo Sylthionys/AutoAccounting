@@ -93,7 +93,7 @@ Input:
             return fallback
         }
 
-        val selected = selectCategory(response, categoryPaths)
+        val selected = resolveCategoryPath(response, categories)
         if (selected == null) {
             ServerLog.d("AI分类结果不在当前账本候选中，使用兜底分类")
         }
@@ -128,6 +128,24 @@ Input:
 
         fun categoryExists(categoryName: String, categories: List<CategoryModel>): Boolean {
             return categoryName.trim() in categoryPaths(categories)
+        }
+
+        fun resolveCategoryPath(categoryName: String, categories: List<CategoryModel>): String? {
+            val name = categoryName.trim()
+            if (name.isEmpty()) return null
+
+            val paths = categoryPaths(categories)
+            paths.firstOrNull { it == name }?.let { return it }
+
+            val namesByRemoteId = categories
+                .filter { it.remoteId.isNotBlank() }
+                .associate { it.remoteId to it.name?.trim().orEmpty() }
+            return categories.mapNotNull { category ->
+                val childName = category.name?.trim()?.takeIf(String::isNotEmpty)
+                    ?: return@mapNotNull null
+                val parentName = namesByRemoteId[category.remoteParentId].orEmpty()
+                if (childName == name && parentName.isNotEmpty()) "$parentName - $childName" else null
+            }.distinct().singleOrNull()
         }
 
         fun selectCategory(response: String, categoryNames: List<String>): String? =

@@ -32,6 +32,7 @@ import org.ezbook.server.db.AppDatabase
 import org.ezbook.server.db.Db
 import org.ezbook.server.db.model.AppDataModel
 import org.ezbook.server.db.model.BillInfoModel
+import org.ezbook.server.db.model.CategoryModel
 import org.ezbook.server.db.model.CurrencyModel
 import org.ezbook.server.engine.JsExecutor
 import org.ezbook.server.engine.RuleGenerator
@@ -53,6 +54,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.ezbook.server.log.ServerLog
 
+internal suspend fun resolveMappedCategory(
+    bill: BillInfoModel,
+    categories: List<CategoryModel>,
+    processor: CategoryProcessor = CategoryProcessor()
+): String? = processor.setCategoryMap(bill, categories)
 
 /**
  * 账单核心业务服务类
@@ -559,11 +565,11 @@ class BillService(
         val categories = categoryTool.loadCategories(resolvedBook.remoteId, bill.type)
 
         // 先应用用户分类映射，再判断分类规则结果是否真实存在于当前账本。
-        CategoryProcessor().setCategoryMap(bill)
-        var categoryExists = CategoryTool.categoryExists(bill.cateName, categories)
+        var resolvedCategory = resolveMappedCategory(bill, categories)
+        val needsAiCategory = !bill.hasValidCategory()
 
         // AI分类识别需要总开关和分类开关同时开启
-        if (!categoryExists &&
+        if ((needsAiCategory || resolvedCategory == null) &&
             SettingUtils.featureAiAvailable() &&
             SettingUtils.aiCategoryRecognition()
         ) {
@@ -575,11 +581,10 @@ class BillService(
             ).takeUnless { it.isNullOrEmpty() } ?: bill.cateName
             ServerLog.d("AI category evaluated")
 
-            CategoryProcessor().setCategoryMap(bill)
-            categoryExists = CategoryTool.categoryExists(bill.cateName, categories)
+            resolvedCategory = resolveMappedCategory(bill, categories)
         }
 
-        if (!categoryExists) {
+        if (resolvedCategory == null) {
             bill.cateName = CategoryTool.fallbackCategory(CategoryTool.categoryPaths(categories))
                 ?: bill.cateName
             ServerLog.d("Category fallback evaluated")
@@ -685,4 +690,3 @@ class BillService(
         }
     }
 }
-

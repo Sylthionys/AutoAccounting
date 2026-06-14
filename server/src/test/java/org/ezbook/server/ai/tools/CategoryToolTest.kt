@@ -89,10 +89,27 @@ class CategoryToolTest {
     }
 
     @Test
+    fun resolveCategoryPath_normalizesOnlyUnambiguousChildNames() {
+        val commute = parent("通勤", "parent-commute")
+        val travel = parent("旅行", "parent-travel")
+        val metro = child("地铁", "child-metro", commute.remoteId)
+        val commuteTaxi = child("打车", "child-commute-taxi", commute.remoteId)
+        val travelTaxi = child("打车", "child-travel-taxi", travel.remoteId)
+        val categories = listOf(commute, travel, metro, commuteTaxi, travelTaxi)
+
+        assertEquals("通勤", CategoryTool.resolveCategoryPath("通勤", categories))
+        assertEquals("通勤 - 地铁", CategoryTool.resolveCategoryPath("地铁", categories))
+        assertEquals("旅行 - 打车", CategoryTool.resolveCategoryPath("旅行 - 打车", categories))
+        assertNull(CategoryTool.resolveCategoryPath("打车", categories))
+        assertNull(CategoryTool.resolveCategoryPath("公交", categories))
+    }
+
+    @Test
     fun fallbackCategory_usesExistingOtherCategory() {
         assertEquals("其它", CategoryTool.fallbackCategory(listOf("通勤", "其它")))
         assertEquals("其他", CategoryTool.fallbackCategory(listOf("通勤", "其他")))
         assertNull(CategoryTool.fallbackCategory(listOf("通勤", "地铁")))
+        assertNull(CategoryTool.fallbackCategory(emptyList()))
     }
 
     private fun category(name: String?) = CategoryModel().apply {
