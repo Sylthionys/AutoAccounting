@@ -547,35 +547,43 @@ class BillService(
                 JsonObject::class.java
             )
         }.getOrNull()
-        ServerLog.d(
-            "Category result: book=${
-                categoryJson.safeGetStringNonBlank(
-                    "book",
-                    ""
-                )
-            }, cate=${categoryJson.safeGetStringNonBlank("category", "")}"
-        )
+        ServerLog.d("Category rule evaluated")
         // 设置账本名称与分类（优先规则结果，否则默认值）
         // 将账本指针（如"默认账本"）解析为数据库中真实存在的账本名称
         val rawBookName = categoryJson.safeGetStringNonBlank("book", SettingUtils.bookName())
-        bill.bookName = resolveBookByNameOrDefault(rawBookName).name
+        val resolvedBook = resolveBookByNameOrDefault(rawBookName)
+        bill.bookName = resolvedBook.name
         bill.cateName = categoryJson.safeGetStringNonBlank("category", "其他")
         bill.remark = categoryJson.safeGetStringNonBlank("remark", "")
+        val categoryTool = CategoryTool()
+        val categories = categoryTool.loadCategories(resolvedBook.remoteId, bill.type)
+
+        // 先应用用户分类映射，再判断分类规则结果是否真实存在于当前账本。
+        CategoryProcessor().setCategoryMap(bill)
+        var categoryExists = CategoryTool.categoryExists(bill.cateName, categories)
+
         // AI分类识别需要总开关和分类开关同时开启
-        if (!bill.hasValidCategory() &&
+        if (!categoryExists &&
             SettingUtils.featureAiAvailable() &&
             SettingUtils.aiCategoryRecognition()
         ) {
-            bill.cateName = CategoryTool().execute(
+            bill.cateName = categoryTool.execute(
                 win.toString(),
                 bill.app,
-                dataType
-            ).takeUnless { it.isNullOrEmpty() } ?: "其他"
-            ServerLog.d("AI category: ${bill.cateName}")
+                dataType,
+                categories
+            ).takeUnless { it.isNullOrEmpty() } ?: bill.cateName
+            ServerLog.d("AI category evaluated")
+
+            CategoryProcessor().setCategoryMap(bill)
+            categoryExists = CategoryTool.categoryExists(bill.cateName, categories)
         }
 
-        // 设置分类映射、查找
-        CategoryProcessor().setCategoryMap(bill)
+        if (!categoryExists) {
+            bill.cateName = CategoryTool.fallbackCategory(CategoryTool.categoryPaths(categories))
+                ?: bill.cateName
+            ServerLog.d("Category fallback evaluated")
+        }
     }
 
     /**
