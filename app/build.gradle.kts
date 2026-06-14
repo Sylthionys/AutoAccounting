@@ -220,11 +220,11 @@ dependencies {
     implementation(libs.rikkaMaterialPreference)
     implementation(libs.about)
 
-    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation(libs.glide)
 
-    implementation("com.tencent.bugly:crashreport:latest.release")
-    implementation("com.tencent:mmkv-static:1.3.5")
-    implementation("net.lingala.zip4j:zip4j:2.11.5")
+    implementation(libs.bugly)
+    implementation(libs.mmkv)
+    implementation(libs.zip4j)
     implementation(kotlin("reflect"))
 
 
