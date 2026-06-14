@@ -51,6 +51,13 @@ materialThemeBuilder {
     generatePalette = true
 }
 
+val appVersionCode = calculateVersionCode()
+val appVersionName = "4.0.2"
+
+base {
+    archivesName.set("app-$appVersionName($appVersionCode)")
+}
+
 android {
     namespace = "net.ankio.auto"
     compileSdk = 36
@@ -60,11 +67,10 @@ android {
         applicationId = "net.ankio.auto"
         minSdk = 29
         targetSdk = 36
-        versionCode = calculateVersionCode()
-        versionName = "4.0.2"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         flavorDimensions += "version"
-        setProperty("archivesBaseName", "app-${versionName}(${versionCode})")
 
 
 
@@ -117,8 +123,9 @@ android {
             )
         }
 
-        // 如果以后要过滤 .so，改用 jniLibs.excludes += "lib/**/foo.so"
-        // jniLibs { excludes += "lib/**/yourNative.so" }
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
 
